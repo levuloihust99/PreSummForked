@@ -114,13 +114,18 @@ def get_generator(vocab_size, dec_hidden_size, device):
     return generator
 
 class Bert(nn.Module):
-    def __init__(self, large, temp_dir, finetune=False):
-        super(Bert, self).__init__()
-        if(large):
-            self.model = BertModel.from_pretrained('bert-large-uncased', cache_dir=temp_dir)
-        else:
-            self.model = BertModel.from_pretrained('bert-base-uncased', cache_dir=temp_dir)
+    # def __init__(self, large, temp_dir, finetune=False):
+    #     super(Bert, self).__init__()
+    #     if(large):
+    #         self.model = BertModel.from_pretrained('bert-large-uncased', cache_dir=temp_dir)
+    #     else:
+    #         self.model = BertModel.from_pretrained('bert-base-uncased', cache_dir=temp_dir)
 
+    #     self.finetune = finetune
+    
+    def __init__(self, model_path, finetune=False):
+        super(Bert, self).__init__()
+        self.model = BertModel.from_pretrained(model_path)
         self.finetune = finetune
     
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, **kwargs):
@@ -192,7 +197,8 @@ class AbsSummarizer(nn.Module):
         super(AbsSummarizer, self).__init__()
         self.args = args
         self.device = device
-        self.bert = Bert(args.large, args.temp_dir, args.finetune_bert)
+        # self.bert = Bert(args.large, args.temp_dir, args.finetune_bert)
+        self.bert = Bert(args.pretrained_model_path)
 
         if bert_from_extractive is not None:
             self.bert.model.load_state_dict(
@@ -211,6 +217,7 @@ class AbsSummarizer(nn.Module):
             my_pos_embeddings.weight.data[:512] = self.bert.model.embeddings.position_embeddings.weight.data
             my_pos_embeddings.weight.data[512:] = self.bert.model.embeddings.position_embeddings.weight.data[-1][None,:].repeat(args.max_pos-512,1)
             self.bert.model.embeddings.position_embeddings = my_pos_embeddings
+            self.bert.model.embeddings.position_ids = torch.tensor(range(args.max_pos)).unsqueeze(0)
         self.vocab_size = self.bert.model.config.vocab_size
         tgt_embeddings = nn.Embedding(self.vocab_size, self.bert.model.config.hidden_size, padding_idx=0)
         if (self.args.share_emb):

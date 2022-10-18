@@ -6,6 +6,7 @@ from __future__ import division
 
 import argparse
 import os
+import json
 from others.logging import init_logger
 from train_abstractive import validate_abs, train_abs, baseline, test_abs, test_text_abs
 from train_extractive import train_ext, validate_ext, test_ext
@@ -34,6 +35,8 @@ if __name__ == '__main__':
     parser.add_argument("-model_path", default='../models/')
     parser.add_argument("-result_path", default='../results/cnndm')
     parser.add_argument("-temp_dir", default='../temp')
+    parser.add_argument("-pretrained_model_path", default="bert-base-uncased")
+    parser.add_argument("-decoder_symbol_mapping", default="../config/decoder_symbol_mapping.json")
 
     parser.add_argument("-batch_size", default=140, type=int)
     parser.add_argument("-test_batch_size", default=200, type=int)
@@ -112,6 +115,9 @@ if __name__ == '__main__':
     args.gpu_ranks = [int(i) for i in range(len(args.visible_gpus.split(',')))]
     args.world_size = len(args.gpu_ranks)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.visible_gpus
+    
+    with open(args.decoder_symbol_mapping, "r") as reader:
+        args.decoder_symbol_mapping = json.load(reader)
 
     init_logger(args.log_file)
     device = "cpu" if args.visible_gpus == '-1' else "cuda"
